@@ -96,6 +96,7 @@ void MotionCapture::detectionI(
     const sensor_msgs::msg::Image::ConstSharedPtr &ImageInput) {
 
   // Initialize images
+  cv_bridge::getCvType(ImageInput->encoding);
   current_image_io =
       cv_bridge::toCvCopy(ImageInput, sensor_msgs::image_encodings::BGRA8);
   cv_bridge::CvImagePtr delta_img = current_image_io;
