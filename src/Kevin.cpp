@@ -33,7 +33,7 @@ public:
 
   void init(image_transport::ImageTransport &it) {
     sub = it.subscribe(
-        "/cam_pub", 10,
+        "/compressed_image", 10,
         std::bind(&Kevin::topic_callback, this, std::placeholders::_1));
     pub = it.advertise("/kevin", 10);
   }
@@ -42,7 +42,7 @@ private:
   void topic_callback(const sensor_msgs::msg::Image::ConstSharedPtr &msg) {
     auto message = std::make_shared<sensor_msgs::msg::Image>();
 
-    mc.detectionF(message, msg);
+    mc.detectionI(message, msg);
 
     pub.publish(message);
   }
