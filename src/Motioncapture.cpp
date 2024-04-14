@@ -97,35 +97,48 @@ void MotionCapture::detectionI(
 
   // Initialize images
   current_image_io =
-      cv_bridge::toCvCopy(ImageInput, sensor_msgs::image_encodings::BGRA8);
+      cv_bridge::toCvCopy(ImageInput, sensor_msgs::image_encodings::BGR8);
   cv_bridge::CvImagePtr delta_img = current_image_io;
+  cv::cvtColor(delta_img->image, delta_img->image, COLOR_BGR2GRAY);
 
   // if not first frame
   if (prev_image_io != nullptr) {
     // convert images to RGB and than to GREY
-    cv::cvtColor(current_image_io->image, current_image_io->image,
-                 cv::COLOR_BGRA2RGB);
-    cv::cvtColor(prev_image_io->image, current_image_io->image,
-                 cv::COLOR_BGRA2RGB);
-    cv::cvtColor(current_image_io->image, prev_image_io->image,
-                 cv::COLOR_RGB2GRAY);
-    cv::cvtColor(prev_image_io->image, prev_image_io->image,
-                 cv::COLOR_RGB2GRAY);
+    if (current_image_io->image.channels() == 3) {
+      cv::cvtColor(current_image_io->image, current_image_io->image,
+                   cv::COLOR_BGR2GRAY);
+    }
+
+    if (prev_image_io->image.channels() == 3) {
+      cv::cvtColor(prev_image_io->image, prev_image_io->image,
+                   cv::COLOR_BGR2GRAY);
+    }
 
     // subtract images
     cv::subtract(prev_image_io->image, current_image_io->image,
                  delta_img->image);
-
-  } else {
-    // if is first frame
-    delta_img = current_image_io;
   }
-  // set threshold and convert to BGRA
-  cv::threshold(delta_img->image, delta_img->image, 50., 255,
-                cv::THRESH_BINARY);
-  cv::cvtColor(delta_img->image, delta_img->image, cv::COLOR_GRAY2BGRA);
 
+  // slow denoising maybe implement GPU support?
+  // cv::fastNlMeansDenoising(delta_img->image, delta_img->image, 10);
+
+  // fast denoising
+  cv::Mat denoised_delta;
+  cv::bilateralFilter(delta_img->image, denoised_delta, 5, 150, 150);
+  delta_img->image = denoised_delta;
+
+  cv::cvtColor(delta_img->image, delta_img->image, COLOR_GRAY2BGR);
   ImageOutput = delta_img->toImageMsg();
 
-  prev_image_io = current_image_io;
+  prev_image_io = cv_bridge::toCvCopy(ImageInput);
+
+  // convert back to bgr
+  if (current_image_io->image.channels() == 1) {
+    cv::cvtColor(current_image_io->image, current_image_io->image,
+                 cv::COLOR_GRAY2BGR);
+  }
+  if (prev_image_io->image.channels() == 1) {
+    cv::cvtColor(prev_image_io->image, prev_image_io->image,
+                 cv::COLOR_GRAY2BGR);
+  }
 }
